@@ -5,16 +5,16 @@ A roleplaying schema developed by Cloud Sixteen set in a post-apocalyptic univer
 
 If you wish to [buy Atomic](http://store.cloudsixteen.com/cart.php) for your Garry's Mod server, you can visit the [Cloud Sixteen Store](https://store.cloudsixteen.com).
 
-
 ## Installation
 
 > This schema required a very old version of Clockwork. You must use [Clockwork 0.96.3](https://github.com/CloudSixteen/Clockwork/releases/tag/v0.96.3d) for this schema to work.
 
-If you need help installing this schema then either visit the [Cloud Sixteen Wiki](https://wiki.cloudsixteen.com) or [Join the Cloud Sixteen Discord Server](https://discord.gg/gGsSSZj)
+* [Cloud Sixteen Wiki](https://wiki.cloudsixteen.com)
 
-## Commununity
+## Community
 
-Join the [Cloud Sixteen Community](https://eden.cloudsixteen.com) today!
+* [Cloud Sixteen Forums](https://eden.cloudsixteen.com)  
+* [Cloud Sixteen Discord](https://discord.gg/gGsSSZj)
 
 ### See Also
 
