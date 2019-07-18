@@ -1,0 +1,9 @@
+"cwatomic"
+{
+	"base"			"Clockwork"
+	"title"			"Atomic"
+	"author"		"NightAngel"
+	"version"		"1.2.2"
+	"description"	"A roleplaying schema developed by Cloud Sixteen set in a post-apocalyptic universe."
+	"workshopid"	"507624696"
+}

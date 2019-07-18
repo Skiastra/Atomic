@@ -1,0 +1,9 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "models\atomic\pipboy/pipboyarm01"
+	"$bumpmap" "models\atomic\pipboy/pipboyarm01n"
+
+	"$nocull" "1"
+	"$model" "1"
+	"$halflambert" 1
+}
