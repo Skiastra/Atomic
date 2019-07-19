@@ -1,5 +1,6 @@
 # Atomic
-[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors)  
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors)
+[![Discord](https://img.shields.io/discord/126667779095920640.svg)](https://discord.gg/EEg47Dw)
   
 A roleplaying schema developed by Cloud Sixteen set in a post-apocalyptic universe.
 
