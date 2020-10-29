@@ -26,6 +26,18 @@ function Atomic:PlayerUseUnknownItemFunction(player, itemTable, itemFunction)
 	--]]
 end;
 
+function Atomic:PrePlayerDefaultFootstep(player)
+	if (player:Crouching() and Clockwork.config:Get("mute_crouched"):GetBoolean()) then
+		return true;
+	end;
+end;
+
+function Atomic:PlayerDataLoaded(player)
+	Clockwork.datastream:Start(player, "StartIntroduction", {player:GetData("FNVIntro")});
+	player:SetData("ClockworkIntro", true);
+	player:SetData("FNVIntro", true);
+end;
+
 function Atomic:EntityFireBullets(entity, bulletInfo)
 	self:DoFireBullets(entity, bulletInfo);
 end;
@@ -88,13 +100,11 @@ end;
 
 -- Called when Clockwork has loaded all of the entities.
 function Atomic:ClockworkInitPostEntity()
-	self:LoadRadios();
 	self:LoadMusicRadios();
 end;
 
 -- Called just after data should be saved.
 function Atomic:PostSaveData()
-	self:SaveRadios();
 	self:SaveMusicRadios();
 end;
 
@@ -219,72 +229,6 @@ end;
 
 -- Called when a chat box message has been added.
 function Atomic:ChatBoxMessageAdded(info)
-	if (info.class == "ic") then
-		local eavesdroppers = {};
-		local talkRadius = Clockwork.config:Get("talk_radius"):Get();
-		local listeners = {};
-		local players = cwPlayer.GetAll();
-		local radios = ents.FindByClass("cw_radio");
-		local data = {};
-		
-		for k, v in ipairs(radios) do
-			if (!v:GetOff() and info.speaker:GetPos():Distance(v:GetPos()) <= talkRadius) then
-				local frequency = v:GetFrequency();
-				
-				if (frequency != 0) then
-					info.shouldSend = false;
-					info.listeners = {};
-					data.frequency = frequency;
-					data.position = v:GetPos();
-					data.entity = v;
-					
-					break;
-				end;
-			end;
-		end;
-		
-		if (IsValid(data.entity) and data.frequency != "") then
-			for k, v in ipairs(players) do
-				if (v:HasInitialized() and v:Alive() and !v:IsRagdolled(RAGDOLL_FALLENOVER)) then
-					if ((v:GetCharacterData("frequency") == data.frequency and v:HasItemByID("handheld_radio")) 
-					or info.speaker == v) then
-						listeners[v] = v;
-					elseif (v:GetPos():Distance(data.position) <= talkRadius) then
-						eavesdroppers[v] = v;
-					end;
-				end;
-			end;
-			
-			for k, v in ipairs(radios) do
-				local radioPosition = v:GetPos();
-				local radioFrequency = v:GetFrequency();
-				
-				if (!v:GetOff() and radioFrequency == data.frequency) then
-					for k2, v2 in ipairs(players) do
-						if (v2:HasInitialized() and !listeners[v2] and !eavesdroppers[v2]) then
-							if (v2:GetPos():Distance(radioPosition) <= (talkRadius * 2)) then
-								eavesdroppers[v2] = v2;
-							end;
-						end;
-						
-						break;
-					end;
-				end;
-			end;
-			
-			if (table.Count(listeners) > 0) then
-				Clockwork.chatBox:Add(listeners, info.speaker, "radio", info.text);
-			end;
-			
-			if (table.Count(eavesdroppers) > 0) then
-				Clockwork.chatBox:Add(eavesdroppers, info.speaker, "radio_eavesdrop", info.text);
-			end;
-			
-			table.Merge(info.listeners, listeners);
-			table.Merge(info.listeners, eavesdroppers);
-		end;
-	end;
-	
 	if (info.voice) then
 		if (IsValid(info.speaker) and info.speaker:HasInitialized()) then
 			info.speaker:EmitSound(info.voice.sound, info.voice.volume);
@@ -297,34 +241,6 @@ function Atomic:ChatBoxMessageAdded(info)
 				end;
 			end;
 		end;
-	end;
-end;
-
--- Called when a player has used their radio.
-function Atomic:PlayerRadioUsed(player, text, listeners, eavesdroppers)
-	local newEavesdroppers = {};
-	local talkRadius = Clockwork.config:Get("talk_radius"):Get() * 2;
-	local frequency = player:GetCharacterData("frequency");
-	
-	for k, v in ipairs(ents.FindByClass("cw_radio")) do
-		local radioPosition = v:GetPos();
-		local radioFrequency = v:GetFrequency();
-		
-		if (!v:GetOff() and radioFrequency == frequency) then
-			for k2, v2 in ipairs(cwPlayer.GetAll()) do
-				if (v2:HasInitialized() and !listeners[v2] and !eavesdroppers[v2]) then
-					if (v2:GetPos():Distance(radioPosition) <= talkRadius) then
-						newEavesdroppers[v2] = v2;
-					end;
-				end;
-				
-				break;
-			end;
-		end;
-	end;
-	
-	if (table.Count(newEavesdroppers) > 0) then
-		Clockwork.chatBox:Add(newEavesdroppers, player, "radio_eavesdrop", text);
 	end;
 end;
 
@@ -341,37 +257,7 @@ end;
 
 -- Called when an entity's menu option should be handled.
 function Atomic:EntityHandleMenuOption(player, entity, option, arguments)
-	if (entity:GetClass() == "cw_radio") then
-		if (option == "Set Frequency" and type(arguments) == "string") then
-			if (string.find(arguments, "^%d%d%d%.%d$")) then
-				local start, finish, decimal = string.match(arguments, "(%d)%d(%d)%.(%d)");
-				
-				start = tonumber(start);
-				finish = tonumber(finish);
-				decimal = tonumber(decimal);
-				
-				if (start == 1 and finish > 0 and finish < 10 and decimal > 0 and decimal < 10) then
-					entity:SetFrequency(arguments);
-					
-					Clockwork.player:Notify(player, "You have set this stationary radio's arguments to "..arguments..".");
-				else
-					Clockwork.player:Notify(player, "The radio arguments must be between 101.1 and 199.9!");
-				end;
-			else
-				Clockwork.player:Notify(player, "The radio arguments must look like xxx.x!");
-			end;
-		elseif (arguments == "cw_radioToggle") then
-			entity:Toggle();
-		elseif (arguments == "cw_radioTake") then
-			local bSuccess, fault = player:GiveItem(Clockwork.item:CreateInstance("stationary_radio"));
-			
-			if (!bSuccess) then
-				Clockwork.player:Notify(player, fault);
-			else
-				entity:Remove();
-			end;
-		end;
-	elseif (entity:GetClass() == "cw_music_radio") then
+	if (entity:GetClass() == "cw_music_radio") then
 		if (arguments == "cw_musicToggle") then
 			entity:Toggle();
 		elseif (arguments == "cw_musicTake") then

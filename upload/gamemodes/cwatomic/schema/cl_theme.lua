@@ -241,6 +241,23 @@ function THEME:Initialize()
 	Clockwork.option:SetColor("scoreboard_name", color);
 	Clockwork.option:SetColor("scoreboard_desc", color);
 	Clockwork.option:SetColor("target_id", color);
+
+	Clockwork.option:SetSound("click_release", "atomic/menu_release.wav");
+	Clockwork.option:SetSound("rollover", "atomic/menu_rollover.wav");
+	Clockwork.option:SetSound("click", "atomic/menu_rollover.wav");
+	Clockwork.option:SetSound("tick", "atomic/menu_rollover1.wav");
+
+	Clockwork.option:SetKey("icon_data_classes", {path = "", size = 32});
+	Clockwork.option:SetKey("icon_data_settings", {path = "atomic/hud/menuitems/settings.png", size = 32});
+	Clockwork.option:SetKey("icon_data_perks", {path = "atomic/hud/menuitems/perks.png", size = 32});
+	Clockwork.option:SetKey("icon_data_donations", {path = "", size = 32});
+	Clockwork.option:SetKey("icon_data_system", {path = "atomic/hud/menuitems/system.png", size = 32});
+	Clockwork.option:SetKey("icon_data_scoreboard", {path = "atomic/hud/menuitems/scoreboard.png", size = 32});
+	Clockwork.option:SetKey("icon_data_inventory", {path = "atomic/hud/menuitems/inventory.png", size = 32});
+	Clockwork.option:SetKey("icon_data_directory", {path = "atomic/hud/menuitems/directory.png", size = 32});
+	Clockwork.option:SetKey("icon_data_attributes", {path = "atomic/hud/menuitems/skills.png", size = 32});
+	Clockwork.option:SetKey("icon_data_special", {path = "atomic/hud/menuitems/special.png", size = 32});
+	Clockwork.option:SetKey("icon_data_business", {path = "", size = 32});
 end;
 
 -- Called just before a bar is drawn.
@@ -375,13 +392,51 @@ end;
 
 vgui.Register("cwMenuLblBtn", PANEL, "cwLabelButton");
 
+local lerpStart;
+local lerpTarget;
+local lerpOrigin;
+
+-- Fade In/Out Time.
+local lerpDuration = 2;
+
+local currentMat = nil;
+local nextMat = nil;
+local backMat = Material("srp/fnv/menu_background.png");
+
+local images = {};
+
+-- We do it this way so I don't have to type out each and every material manually (Thank god).
+local loadTypes = {
+	billboard = 9,
+	building = 3,
+	bulletinboard = 9,
+	desktop = 8,
+	magazines = 3,
+	posters = 3	
+};
+
+for k, v in pairs(loadTypes) do
+	for i = 1, v do
+		images[#images + 1] = Material("srp/fnv/loading/loading_"..k.."0"..i..".png");
+	end;
+end;
+
+function Atomic:nextImage()
+	lerpStart = CurTime();
+	lerpTarget = 255;
+	lerpOrigin = 0;
+
+	currentMat = nextMat or backMat;
+	nextMat = images[math.random(1, #images)];
+end;
+
 -- Called before the character menu has initialized.
 function THEME.hooks:PreCharacterMenuInit(panel)
 	local smallTextFont = Clockwork.option:GetFont("menu_text_medium");
 	local scrH = ScrH();
 	local scrW = ScrW();
 
-	local mainButtonX = ScrW() * 0.25;
+	local mainButtonX = ScrW() * 0.55;
 	local mainButtonY = ScrH() * 0.4;
 		
 	panel:SetPos(0, 0);
@@ -434,8 +489,12 @@ function THEME.hooks:PreCharacterMenuInit(panel)
 	panel.aboutButton:FadeIn(1);
 	
 	panel.aboutButton:SetCallback(function(panel)
-		gui.OpenURL(Clockwork.option:GetKey("menu_forum_url"));
-	end);
+		local forumsURL = Clockwork.option:GetKey("menu_forum_url");
+		
+		if (forumsURL and forumsURL != "") then
+			gui.OpenURL(forumsURL);
+		end;
+	end);		
 
 	panel.aboutButton:SizeToContents();
 	panel.aboutButton:SetMouseInputEnabled(true);
@@ -592,8 +651,7 @@ function THEME.hooks:PreCharacterMenuThink(panel)
 		panel.loadButton:SetDisabled(false);
 	end;
 		
-	if (characters >= Clockwork.player:GetMaximumCharacters()
-	or Clockwork.character:IsPanelLoading()) then
+	if (characters >= Clockwork.player:GetMaximumCharacters() or Clockwork.character:IsPanelLoading() or Clockwork.config:Get("is_s2k"):Get()) then
 		panel.createButton:SetDisabled(true);
 	else
 		panel.createButton:SetDisabled(false);
@@ -617,62 +675,67 @@ function THEME.hooks:PreCharacterMenuThink(panel)
 	return true;
 end;
 
+local logoMat = Material("srp/fnv/fnv_logo_base.png");
+local boltMat = Material("srp/fnv/fnv_logo_bolt_bloom.png");
+local neonMat = Material("srp/fnv/fnv_logo_neon_bloom3.png");
+
+local colorBlack = Color(0, 0, 0, 255);
+local colorWhite = Color(255, 255, 255, 255);
+
 -- Called after the character menu is painted.
 function THEME.hooks:PreCharacterMenuPaint(panel)
-	local scrW = ScrW();
+	local scrW, scrH = ScrW(), ScrH();
 	local schemaLogo = Clockwork.option:GetKey("schema_logo");
 	local subLabelAlpha = panel.createButton:GetAlpha();
 	local color = Clockwork.option:GetColor("information");
 	local curTime = CurTime();
 	local communityLogo = Clockwork.option:GetKey("community_logo");
-		
+
+	draw.RoundedBox(0, 0, 0, scrW, scrH, colorBlack);
+
+	local fraction = nil;
+	local imageAlpha = 0;
+
+	if (lerpStart) then
+		fraction = (curTime - lerpStart) / lerpDuration;
+		imageAlpha = Lerp(fraction, lerpOrigin, lerpTarget);
+	end;
+
+	-- Draw background images.
+	surface.SetDrawColor(colorWhite.r, colorWhite.g, colorWhite.b, 255 - imageAlpha);
+	surface.SetMaterial(currentMat or backMat);
+	surface.DrawTexturedRect(0, 0, scrW, scrH);
+
+	if (nextMat) then
+		surface.SetDrawColor(colorWhite.r, colorWhite.g, colorWhite.b, imageAlpha);
+		surface.SetMaterial(nextMat);
+		surface.DrawTexturedRect(0, 0, scrW, scrH);
+	end;
+
 	if (subLabelAlpha > 0) then
-		if (schemaLogo != "") then
-			if (!panel.logoTextureID) then
-				panel.logoTextureID = Material(schemaLogo..".png");
-			end;
+		local logoW, logoH = 512, 256;
+		local logoX, logoY = (scrW * 0.53) - 512, scrH * 0.40;
+		local baseAlpha = subLabelAlpha;
 
-			panel.logoTextureID:SetFloat("$alpha", subLabelAlpha);
+		-- Base
+		surface.SetDrawColor(colorWhite.r, colorWhite.g, colorWhite.b, baseAlpha);
+		surface.SetMaterial(logoMat);
+		surface.DrawTexturedRect(logoX, logoY, logoW, logoH);
 
-			surface.SetDrawColor(color.r, color.g, color.b, subLabelAlpha - 70);
-			surface.SetMaterial(panel.logoTextureID);
-			surface.DrawTexturedRect((scrW * 0.55 - 256), ScrH() * 0.35, 512, 256);
+		local alpha = math.Clamp(baseAlpha - math.abs(math.sin(CurTime()) * (baseAlpha * 0.75)), 0, baseAlpha);
+		local boltAlpha = math.Clamp(baseAlpha - math.abs(math.sin(CurTime() + 0.3) * (baseAlpha * 0.30)), 0, baseAlpha);
 
-			if (schemaLogo == "atomic/atomic_logo_2") then
-				if (!panel.neon) then
-					panel.neon = Material("atomic/atomic_logo_neon.png");
-				end;
+		-- Lightning Bolt in Logo
+		surface.SetDrawColor(colorWhite.r, colorWhite.g, colorWhite.b, boltAlpha);
+		surface.SetMaterial(boltMat);
+		surface.DrawTexturedRect(logoX, logoY, logoW, logoH);
 
-				local neonAlpha = math.abs(math.sin(curTime) * 255);
+		-- Neon Lights in Logo
+		surface.SetDrawColor(colorWhite.r, colorWhite.g, colorWhite.b, alpha);
+		surface.SetMaterial(neonMat);
+		surface.DrawTexturedRect(logoX, logoY, logoW, logoH);
 
-				if (!panel.nextFlicker or panel.nextFlicker <= curTime) then
-					panel.canFlicker = curTime + math.random();
-				end;
-
-				if (panel.nextFlicker and panel.nextFlicker >= curTime) then
-					if (panel.canFlicker and panel.canFlicker <= curTime) then
-						neonAlpha = 0;
-
-						if (!panel.sparkPlayed) then
-							surface.PlaySound("ambient/energy/spark"..math.random(1, 4)..".wav");
-
-							panel.sparkPlayed = true;
-						end;
-					else
-						panel.nextFlicker = curTime + math.random(0.1, 3);
-
-						panel.sparkPlayed = nil;
-					end;
-				else
-					panel.nextFlicker = curTime + math.random(0.1, 3);
-				end;
-
-				surface.SetDrawColor(255, 255, 255, math.min(subLabelAlpha, 255 - neonAlpha));
-				surface.SetMaterial(panel.neon);
-				surface.DrawTexturedRect((scrW * 0.55 - 256), ScrH() * 0.35, 512, 256);
-			end;
-		end;			
-
+		--[[
 		if (!panel.c16) then
 			panel.c16 = Material("atomic/c16_logo.png");
 		end;
@@ -690,6 +753,7 @@ function THEME.hooks:PreCharacterMenuPaint(panel)
 		surface.SetDrawColor(color.r, color.g, color.b, subLabelAlpha - 70);
 		surface.SetMaterial(panel.c16);
 		surface.DrawTexturedRect(60, ScrH() - 110, 256, 80);
+		--]]
 	end;
 		
 	local x, y = panel:CursorPos();
@@ -828,6 +892,79 @@ end;
 -- Called every frame that the main menu is open.
 function THEME.hooks:PostMainMenuThink(panel) end;
 
+local function setTextColor(PANEL, color)
+	local infoColor = color or Clockwork.option:GetColor("information");
+	local colorDarkest = Color(
+		math.max(infoColor.r - 180, 0),
+		math.max(infoColor.g - 180, 0),
+		math.max(infoColor.b - 180, 0),
+		180
+	);
+
+	for k, v in pairs(PANEL:GetChildren()) do
+		local className = v:GetClassName();
+
+		if (v.SetTextColor) then
+			v:SetTextColor(infoColor);
+		end;
+
+		if (!v.paintSet) then
+			if (className == "TextEntry") then
+				v:SetDrawBackground(false);
+
+				local textBack = vgui.Create("EditablePanel", PANEL);
+
+				function v:Think()
+					local infoColor = Clockwork.option:GetColor("information");
+
+					if (infoColor != self:GetHighlightColor()) then
+						self:SetHighlightColor(infoColor);
+					end;
+
+					textBack:SetPos(self:GetPos());
+					textBack:SetSize(self:GetSize());
+				end;
+
+				function textBack:Paint(w, h)
+					draw.RoundedBox(0, 0, 0, w, h, colorDarkest);
+
+					surface.SetDrawColor(infoColor);
+
+					for i = 0, 1 do
+						surface.DrawOutlinedRect(i, i, w - (i * 2), h - (i * 2));
+					end;
+
+					return true;
+				end;
+
+				v:MoveToAfter(textBack);
+
+				v.paintSet = true;
+			elseif (v:GetTable().ClassName == "DComboBox") then
+				function v:Paint(w, h)
+					draw.RoundedBox(0, 0, 0, w, h, colorDarkest);
+
+					surface.SetDrawColor(infoColor);
+
+					for i = 0, 1 do
+						surface.DrawOutlinedRect(i, i, w - (i * 2), h - (i * 2));
+					end;
+
+					draw.SimpleText(self:GetValue(), "DermaDefault", w * 0.01, h * 0.5, infoColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER);
+
+					return true;
+				end;
+
+				v.paintSet = true;
+			end;
+		end;
+
+		if (v:HasChildren()) then
+			setTextColor(v, infoColor);
+		end;
+	end;
+end;
+
 Clockwork.theme:HookReplace("cwScoreboard", "Paint", function(PANEL, w, h)
 	THEME:DrawAtomicBorder({
 		x = 0,
@@ -837,6 +974,99 @@ Clockwork.theme:HookReplace("cwScoreboard", "Paint", function(PANEL, w, h)
 	});
 
 	return true;
+end);
+
+Clockwork.theme:HookReplace("cwCharacterStageTwo", "Paint", function(PANEL, w, h)
+	THEME:DrawAtomicBorder({
+		x = 0,
+		y = 0,
+		width = w,
+		height = h
+	});
+
+	setTextColor(PANEL);
+
+	return true;
+end);
+
+Clockwork.theme:HookAfter("cwCharacterStageTwo", "Init", function(PANEL)
+ 	function PANEL.categoryList:Paint(w, h)
+//		return true;
+	end;
+	
+	if (!Clockwork.faction.stored[PANEL.info.faction].GetName) then
+		function PANEL.nameForm:Paint(w, h)
+			return true;
+		end;
+	end;
+	
+	if (PANEL.bSelectModel or PANEL.bPhysDesc) then
+		function PANEL.appearanceForm:Paint(w, h)
+			return true;
+		end;
+
+		if (PANEL.bSelectModel) then
+			function PANEL.modelItemsList:Paint(w, h)
+				return true;
+			end;
+		end;
+	end;
+end);
+
+Clockwork.theme:HookReplace("DMenu", "Paint", function(PANEL, w, h)
+	THEME:DrawAtomicBorder({
+		x = 0,
+		y = 0,
+		width = w,
+		height = h
+	});
+
+	setTextColor(PANEL);
+
+	return true;
+end);
+
+Clockwork.theme:HookReplace("cwStorage", "Paint", function(PANEL, w, h)
+	THEME:DrawAtomicBorder({
+		x = 0,
+		y = 0,
+		width = w,
+		height = h
+	});
+
+	return true;
+end);
+
+-- Fucking kill me
+Clockwork.theme:HookAfter("cwQuiz", "Init", function(PANEL)
+	function PANEL.scrollList:Paint(w, h)
+		setTextColor(PANEL);
+
+		return true;
+	end;
+
+	function PANEL.panelList:Paint(w, h)
+		THEME:DrawAtomicBorder({
+			x = 0,
+			y = 0,
+			width = w,
+			height = h
+		});
+
+		return true;
+	end;
+end);
+
+Clockwork.theme:HookAfter("cwStorage", "Init", function(PANEL)
+ 	function PANEL.containerPanel:Paint(w, h)
+		return true;
+	end;
+	
+	if (!Clockwork.storage:GetIsOneSided()) then
+		function PANEL.inventoryPanel:Paint(w, h)
+			return true;
+		end;
+	end;
 end);
 
 Clockwork.theme:HookReplace("cwAttributes", "Paint", function(PANEL, w, h)

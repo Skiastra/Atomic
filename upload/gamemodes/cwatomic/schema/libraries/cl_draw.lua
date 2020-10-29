@@ -253,7 +253,7 @@ end;
 
 function Atomic.Draw:StyleNumber(num)
 	if (tonumber(num) >= 10) then
-		if (tonumber(num) > 100) then
+		if (tonumber(num) >= 100) then
 			return num;
 		end;
 		

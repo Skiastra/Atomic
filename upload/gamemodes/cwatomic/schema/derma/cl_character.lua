@@ -10,7 +10,8 @@
     http://steamcommunity.com/id/NA1455.
 --]]
 
-Clockwork.character:RemoveCreationPanel("Persuasion");
+Clockwork.character:RemoveCreationPanel("CreateCharacterStage1");
+
 Clockwork.character:RegisterCreationPanel("Faction", "cwCharacterFaction", 1, 
 	function(info)
 		local factions = {};
@@ -31,5 +32,5 @@ Clockwork.character:RegisterCreationPanel("Faction", "cwCharacterFaction", 1,
 		return false;
 	end
 );
-Clockwork.character:RegisterCreationPanel("Gender", "cwCharacterGender", 2);
+Clockwork.character:RegisterCreationPanel("CreateCharacterStage1", "cwCharacterGender", 2);
 Clockwork.character:RegisterCreationPanel("S.P.E.C.I.A.L.", "cwCharacterSpecial", 4);

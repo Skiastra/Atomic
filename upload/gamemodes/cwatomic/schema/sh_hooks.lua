@@ -72,10 +72,23 @@ end;
 -- Called when a perk is registered.
 function Atomic:OnPerkRegistered(perk) end;
 
+local repairSounds = {};
+
+-- Because I'm lazy.
+for i = 1, 7 do
+	repairSounds[#repairSounds + 1] = "srp/fnv/repair/repair_0"..i..".mp3";
+end;
+
 -- Called when a clockwork item initializes.
 function Atomic:ClockworkItemInitialized(itemTable)
+	local isWeapon = Clockwork.item:IsWeapon(itemTable);
+
 	itemTable.spawnValue = 1;
 	itemTable.spawnType = "misc";
+
+	if (itemTable.specialBoost) then
+		itemTable.specialBoost = nil;
+	end;
 
 	if (itemTable.category == "Consumables") then
 		itemTable.spawnValue = 2;
@@ -86,6 +99,58 @@ function Atomic:ClockworkItemInitialized(itemTable)
 	elseif (itemTable.category == "Aid") then
 		itemTable.spawnValue = 1;
 		itemTable.spawnType = "medical";
+	end;
+
+	local armor = itemTable.baseArmor;
+
+	if (armor) then
+		if (itemTable.GetClientSideInfo) then
+			itemTable.OldGetClientSideInfo = itemTable.GetClientSideInfo;
+			itemTable.NewGetClientSideInfo = ArmorGetClientSideInfo;
+			itemTable.GetClientSideInfo = function(itemTable)
+				local existingText = itemTable:OldGetClientSideInfo();
+				local additionText = itemTable:NewGetClientSideInfo() or "";
+				local totalText = (existingText and existingText.."\n" or "")..additionText;
+				
+				return (totalText != "" and totalText);
+			end;
+		else
+			itemTable.GetClientSideInfo = ArmorGetClientSideInfo;
+		end;
+		
+		itemTable:AddData("Armor", armor, true);	
+	end;
+
+	if (armor or isWeapon) then
+		itemTable.customFunctions = itemTable.customFunctions or {};
+
+		table.insert(itemTable.customFunctions, "Repair");
+
+		if (SERVER) then
+			function itemTable:OnCustomFunction(player, name)
+				if (name == "Repair") then
+					local scrap = player:FindItemByID("Scrap");
+
+					if (scrap) then
+						local armor = self:GetData("Armor");
+
+						if (armor) then
+							self:SetData("Armor", math.Clamp(armor + (Clockwork.config:Get("repair_amount"):GetNumber() * self.baseArmor), 0, self.baseArmor));
+						end;
+
+						local durability = self:GetData("Condition");
+
+						if (durability) then
+							self:SetData("Condition", math.Clamp(durability + (Clockwork.config:Get("repair_amount"):GetNumber() * self.health), 0, self.health));
+						end;
+
+						player:EmitSound(repairSounds[math.random(1, #repairSounds)]);
+
+						player:TakeItem(scrap);
+					end;
+				end;
+			end;
+		end;
 	end;
 
 	if (itemTable.baseItem == "alcohol_base") then
@@ -102,7 +167,7 @@ function Atomic:ClockworkItemInitialized(itemTable)
 		itemTable.spawnType = "consumable";
 
 		return;
-	elseif (Clockwork.item:IsWeapon(itemTable)) then
+	elseif (isWeapon) then
 		itemTable.pickupSound = "atomic/items/weapons/gunssmall_up.mp3";
 		itemTable.dropSound = "atomic/items/weapons/gunssmall_down.mp3";
 		itemTable.useSound = {"atomic/items/weapons/gunssmall_up.mp3", "atomic/items/weapons/gunssmall_down.mp3"};
@@ -158,26 +223,6 @@ function Atomic:ClockworkItemInitialized(itemTable)
 	elseif (itemTable.baseItem == "base_apparel") then
 		itemTable.spawnType = "misc";
 		itemTable.spawnValue = 1;
-	end;
-
-	local armor = itemTable.baseArmor;
-
-	if (armor) then
-		if (itemTable.GetClientSideInfo) then
-			itemTable.OldGetClientSideInfo = itemTable.GetClientSideInfo;
-			itemTable.NewGetClientSideInfo = ArmorGetClientSideInfo;
-			itemTable.GetClientSideInfo = function(itemTable)
-				local existingText = itemTable:OldGetClientSideInfo();
-				local additionText = itemTable:NewGetClientSideInfo() or "";
-				local totalText = (existingText and existingText.."\n" or "")..additionText;
-				
-				return (totalText != "" and totalText);
-			end;
-		else
-			itemTable.GetClientSideInfo = ArmorGetClientSideInfo;
-		end;
-		
-		itemTable:AddData("Armor", armor, true);
 	end;
 
 	if (!itemTable.dropSound) then

@@ -12,8 +12,8 @@
 
 local ITEM = Clockwork.item:New("base_junk");
 	ITEM.name = "Gas Canister";
-	ITEM.worth = 10;
+	ITEM.worth = 2;
 	ITEM.model = "models/props_junk/gascan001a.mdl";
 	ITEM.weight = 1;
-	ITEM.description = "A red can filled with gasoline.";
+	ITEM.description = "A empty can of gasoline.";
 ITEM:Register();

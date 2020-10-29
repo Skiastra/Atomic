@@ -1,5 +1,5 @@
 --[[ 
-    © 2015 CloudSixteen.com do not share, re-distribute or modify
+    ï¿½ 2015 CloudSixteen.com do not share, re-distribute or modify
     without permission of its author (kurozael@gmail.com).
 
     Clockwork was created by Conna Wiles (also known as kurozael.)
@@ -22,6 +22,10 @@ Clockwork.config:AddToSystem("Medical Effect Scale", "medical_effect", "The effe
 Clockwork.config:AddToSystem("Agility Effect Scale", "agility_effect", "The effectiveness a player's agility will have in reducing action time (baseTime - (agility * agility_effect)).", 0, 1, 3);
 Clockwork.config:AddToSystem("Condition Decrease Scale", "condition_decrease_scale", "The higher the number, the quicker weapons will lose condition.", 0, 4, 3);
 Clockwork.config:AddToSystem("Starting SPECIAL points", "default_special_points", "The default amount of extra points that a player has to distribute into their SPECIAL stats.");
+Clockwork.config:AddToSystem("Mute Crouched Footsteps", "mute_crouched", "Whether or not footsteps are muted when crouched.");
+//Clockwork.config:AddToSystem("Footstep Volume", "step_volume", "How loud a player's footsteps will be when standing.", 0, 1, 3);
+//Clockwork.config:AddToSystem("Crouched Footstep Volume", "crouch_step_volume", "How loud a player's footsteps will be when crouching.", 0, 1, 3);
+Clockwork.config:AddToSystem("Repair Amount", "repair_amount", "How much out of the maximum will repairing an item fix its condition (in a fraction).", 0, 1, 3);
 
 Clockwork.setting:AddCheckBox("HUD", "Show Primary HUD.", "cwPrimaryHUD", "Whether or not to display the primary HUD.");
 

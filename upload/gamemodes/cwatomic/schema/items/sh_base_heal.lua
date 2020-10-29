@@ -33,6 +33,8 @@ local ITEM = Clockwork.item:New(nil, true);
 		if (Clockwork.plugin:Call("PlayerHealed", player, player, self)) then
 			player:SetHealth(math.Clamp(player:Health() + Atomic:GetHealAmount(player, self.baseHeal), 0, player:GetMaxHealth()));
 			Clockwork.kernel:PrintLog(LOGTYPE_URGENT, player:Name().." has healed themself for "..Atomic:GetHealAmount(player, self.baseHeal)..", leaving them at "..player:Health().." health!");
+
+			player:TakeItem(self);
 		end;
 	end;
 

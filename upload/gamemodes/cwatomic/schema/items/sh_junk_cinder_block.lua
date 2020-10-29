@@ -12,7 +12,7 @@
 
 local ITEM = Clockwork.item:New("base_junk");
 	ITEM.name = "Cinder Block";
-	ITEM.worth = 20;
+	ITEM.worth = 2;
 	ITEM.model = "models/props_junk/cinderblock01a.mdl";
 	ITEM.weight = 2;
 	ITEM.description = "A heavy block of concrete.";

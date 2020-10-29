@@ -14,10 +14,63 @@ local surface = surface;
 local gradMat = Material("atomic/hud/line/fade_to_top.png");
 local MAT_UP = Material("atomic/hud/arrow_up.png");
 local MAT_DOWN = Material("atomic/hud/arrow_down.png");
+local cursorMat = Material("srp/fnv/cursor.png");
+
+--[[ 
+	Draw the custom cursor. This NEEDS to be drawn after everything else, so the
+	cursor will draw over other elements and not be drawn under them.
+--]]
+function Atomic:PostRenderVGUI()
+	if (vgui.CursorVisible() and !(gui.IsGameUIVisible() or gui.IsConsoleVisible() or system.IsOSX())) then -- Sorry Mac users :/
+		local hoverPanel = vgui.GetHoveredPanel();
+
+		if (hoverPanel) then
+			hoverPanel:SetCursor("blank");
+		end;
+
+		local x, y = input.GetCursorPos();
+		local w, h = 32, 32;
+
+		surface.SetDrawColor(Clockwork.option:GetColor("information"));
+		surface.SetMaterial(cursorMat);
+		surface.DrawTexturedRect(x - 4, y - 2, w, h);
+	end;
+end;
+
+-- This is for drawing our custom menu.
+function Atomic:PreRender()
+	local isVisible = gui.IsGameUIVisible();
+
+	if (gui.IsConsoleVisible()) then
+		self.showDefaultMenu = true;
+	end;
+
+	if (self.showDefaultMenu and !isVisible and !self.delayCheck) then
+		self.showDefaultMenu = false;
+	end;
+
+	if (isVisible and self.delayCheck) then
+		self.delayCheck = nil;
+	end;
+
+	if (isVisible and !self.showDefaultMenu) then
+		gui.HideGameUI();
+
+		if (self.pauseUI) then
+			self.pauseUI:Remove();
+			self.pauseUI = nil;
+		else
+			self.pauseUI = vgui.Create("FNVMainMenu");
+			self.pauseUI:MakePopup();
+		end;
+	end;
+end;
 
 -- Called when the menu's items should be destroyed.
 function Atomic:MenuItemsDestroy(menuItems)
-	menuItems:Destroy(Clockwork.option:GetKey("name_business"));
+	menuItems:Destroy("Business");
+	menuItems:Destroy("Community");
+	menuItems:Destroy("Plugin Center");
 end;
 
 -- Called when the menu's items should be destroyed.
@@ -29,6 +82,26 @@ function Atomic:MenuItemsAdd(menuItems)
 	if (#Clockwork.Client:GetPerks() > 0) then
 		menuItems:Add("PERKS", "cwPerks", "View your current perks.", Clockwork.option:GetKey("icon_data_perks"));
 	end;
+end;
+	
+local checkList = {
+	p = true,
+	e = true,
+	t = true,
+	o = true, -- o, a, s are admin flags, so we're also checking if they're admin.
+	a = true,
+	s = true
+};
+
+-- Called when the player attempts to open the spawn menu.
+function Atomic:SpawnMenuOpen()
+	for k, v in pairs(checkList) do
+		if (Clockwork.player:HasFlags(Clockwork.Client, k)) then
+			return true;
+		end;
+	end;
+
+	return false;
 end;
 
 -- Called when a player's scoreboard options are needed.
@@ -60,16 +133,6 @@ function Atomic:GetPlayerScoreboardClass(player)
 	end;
 end;
 
--- Called when the local player's item functions should be adjusted.
-function Atomic:PlayerAdjustItemFunctions(itemTable, itemFunctions)
-	--[[
-	MAKE THIS A PERK
-	if (Clockwork.player:HasFlags(Clockwork.Client, "T") and itemTable.cost) then
-		itemFunctions[#itemFunctions + 1] = "Caps";
-	end;
-	]]--
-end;
-
 -- Called when the local player's character screen faction is needed.
 function Atomic:GetPlayerCharacterScreenFaction(character)
 	if (character.customClass and character.customClass != "") then
@@ -82,6 +145,18 @@ function Atomic:PlayerSetDefaultColorModify(colorModify)
 	colorModify["$pp_colour_brightness"] = -0.02;
 	colorModify["$pp_colour_contrast"] = 1.1;
 	colorModify["$pp_colour_colour"] = 0.6;
+end;
+
+-- Called when the local player's color modify should be changed.
+function Atomic:PlayerAdjustColorModify(colorModify)
+	if (!Clockwork.kernel:IsChoosingCharacter()) then
+		local health = Clockwork.Client:Health();
+		local maxHealth = Clockwork.Client:GetMaxHealth();
+		local bright = (1 - (health / maxHealth)) * 0.1;
+
+		colorModify["$pp_colour_colour"] = (health / maxHealth) * 0.6;
+		colorModify["$pp_colour_brightness"] = -0.02 - bright;
+	end;
 end;
 
 -- Called when the schema initializes.
@@ -205,7 +280,7 @@ function Atomic:GetRadarTable()
 				else
 					if (!v.radarColor) then
 						Clockwork.datastream:Request("GetEntityRelationship", {v:GetClass(), Clockwork.Client:Name()}, function(data)
-							if (data == 1) then entry.color = Color(240, 70, 20, 255); v.radarColor = entry.color; end;
+							if (data == 1) then v.radarColor = Color(240, 70, 20, 255); entry.color = v.radarColor; end;
 						end);
 					else
 						entry.color = v.radarColor;
@@ -464,11 +539,13 @@ function Atomic:DrawPrimaryHUD(color, found, nextFind)
 			end;
 		end;
 	end;
-					
-	-- Armor
-	if (Clockwork.Client:GetSharedVar("Stamina") < 100) then
-		Atomic.Draw:ReversedBar(w - (w / 6 + 148), h - 90, Clockwork.Client:GetSharedVar("Stamina"), 100, colorBlack, {width = w / 6, height = 13});
-		Atomic.Draw:ReversedBar(w - (w / 6 + 150), h - 90, Clockwork.Client:GetSharedVar("Stamina"), 100, color, {width = w / 6, height = 11});
+
+	-- What happened to Stamina? :(
+	local stamina = Clockwork.Client:GetSharedVar("Stamina") or 100;
+
+	if (stamina < 100) then
+		Atomic.Draw:ReversedBar(w - (w / 6 + 148), h - 90, stamina, 100, colorBlack, {width = w / 6, height = 13});
+		Atomic.Draw:ReversedBar(w - (w / 6 + 150), h - 90, stamina, 100, color, {width = w / 6, height = 11});
 
 		surface.SetFont(Clockwork.option:GetFont("prim_hud_text"));
 
@@ -549,21 +626,12 @@ function Atomic:CanSeeBlip(entity)
 
 	if (!isPlayer and !isNPC) then return false; end;
 
-	if (isPlayer and entity:GetMoveType() == MOVETYPE_WALK) then
-		local p = Clockwork.Client:GetSpecial("P");
-		local s = entity:GetNWInt("Sneak");
+	if (isPlayer and (entity:Crouching() or entity:IsProne())) then return false; end;
+	
+	if (!Clockwork.player:CanSeeEntity(Clockwork.Client, entity)) then return false; end;
 
-		if (p and s) then
-			if (entity:Crouching()) then
-				if ((p * 10) > s) then
-					return true;
-				end;
-			else
-				return true;
-			end;
-		else
-			return true;
-		end;
+	if (isPlayer and entity:GetMoveType() == MOVETYPE_WALK) then
+		return true;
 	elseif (isNPC or string.find(entity:GetClass(), "npc")) then
 		return true;
 	end;
@@ -592,23 +660,7 @@ end;
 
 -- Called when an entity's menu options are needed.
 function Atomic:GetEntityMenuOptions(entity, options)
-	if (entity:GetClass() == "cw_radio") then
-		if ( !entity:IsOff() ) then
-			options["Turn Off"] = "cw_radioToggle";
-		else
-			options["Turn On"] = "cw_radioToggle";
-		end;
-		
-		options["Set Frequency"] = function()
-			Derma_StringRequest("Frequency", "What would you like to set the frequency to?", frequency, function(text)
-				if ( IsValid(entity) ) then
-					Clockwork.entity:ForceMenuOption(entity, "Set Frequency", text);
-				end;
-			end);
-		end;
-		
-		options["Take"] = "cw_radioTake";
-	elseif (entity:GetClass() == "cw_music_radio") then
+	if (entity:GetClass() == "cw_music_radio") then
 		if (!entity:GetNWBool("Off")) then
 			options["Turn Off"] = "cw_musicToggle";
 		else
@@ -633,10 +685,6 @@ function Atomic:DrawTargetPlayerStatus(target, alpha, x, y)
 	end;
 	
 	if ( target:Alive() ) then
-		if (action == "die") then
-			mainStatus = gender.." is in critical condition.";
-		end;
-		
 		if (target:GetRagdollState() == RAGDOLL_KNOCKEDOUT) then
 			mainStatus = gender.." is clearly unconscious.";
 		end;
@@ -656,17 +704,6 @@ function Atomic:ChatBoxAdjustInfo(info)
 			if (info.data.anon) then
 				info.name = "Somebody";
 			end;
-		end;
-	end;
-end;
-
--- Called when the post progress bar info is needed.
-function Atomic:GetPostProgressBarInfo()
-	if ( Clockwork.Client:Alive() ) then
-		local action, percentage = Clockwork.player:GetAction(Clockwork.Client, true);
-		
-		if (action == "die") then
-			return {text = "You are slowly dying.", percentage = percentage, flash = percentage > 75};
 		end;
 	end;
 end;

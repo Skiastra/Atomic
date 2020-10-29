@@ -3,7 +3,8 @@
 	"base"			"Clockwork"
 	"title"			"Atomic"
 	"author"		"NightAngel"
-	"version"		"1.2.2"
-	"description"	"A roleplaying schema developed by Cloud Sixteen set in a post-apocalyptic universe."
+	"version"		"1.3.0"
+	"description"	"A roleplaying schema set in a post-apocalyptic universe."
+	"menusystem"	"1"
 	"workshopid"	"507624696"
 }

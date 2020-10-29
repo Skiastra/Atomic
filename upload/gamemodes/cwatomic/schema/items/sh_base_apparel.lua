@@ -16,6 +16,49 @@ ITEM.name = "base_apparel";
 ITEM.uniqueID = "base_apparel";
 ITEM.useSound = "atomic/placeholder.mp3";
 
+-- A function to get the model name.
+function ITEM:GetModelName(player, group)
+	local modelName = nil;
+	
+	if (!player) then
+		player = Clockwork.Client;
+	end;
+	
+	modelName = string.gsub(string.lower(Clockwork.player:GetDefaultModel(player)), "^.-/.-/.-/.-/", "");
+	
+	if (!string.find(modelName, "male") and !string.find(modelName, "female")) then
+		if (player:GetGender() == GENDER_FEMALE) then
+			return "female_04.mdl";
+		else
+			return "male_05.mdl";
+		end;
+	else
+		return modelName;
+	end;
+end;
+
+-- Called when the item's client side model is needed.
+function ITEM:GetClientSideModel()
+	local replacement = nil;
+	
+	if (self.GetReplacement) then
+		replacement = self:GetReplacement(Clockwork.Client);
+	end;
+	
+	if (type(replacement) == "string") then
+		return replacement;
+	elseif (self("replacement")) then
+		return self("replacement");
+	elseif (self("group")) then
+		if (self("bSpire")) then
+			-- This edit is to allow the items to work with the spire models.
+			return "models/thespireroleplay/humans/"..self("group").."/"..self:GetModelName();
+		else
+			return "models/humans/"..self("group").."/"..self:GetModelName();
+		end;
+	end;
+end;
+
 -- Called when a player changes clothes.
 function ITEM:OnChangeClothes(player, bIsWearing)
 	if (bIsWearing) then
@@ -30,7 +73,13 @@ function ITEM:OnChangeClothes(player, bIsWearing)
 		elseif (self("replacement")) then
 			player:SetModel(self("replacement"));
 		elseif (self("group")) then
-			player:SetModel("models/humans/"..self("group").."/"..self:GetModelName(player));
+
+			if (self("bSpire")) then
+				-- This edit is to allow the items to work with the spire models.
+				player:SetModel("models/thespireroleplay/humans/"..self("group").."/"..self:GetModelName(player));
+			else
+				player:SetModel("models/humans/"..self("group").."/"..self:GetModelName(player));
+			end;
 		end;
 
 		if (self.specialBoost) then

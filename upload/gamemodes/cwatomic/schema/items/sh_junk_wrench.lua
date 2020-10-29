@@ -12,7 +12,7 @@
 
 local ITEM = Clockwork.item:New("base_junk");
 	ITEM.name = "Wrench";
-	ITEM.worth = 2;
+	ITEM.worth = 1;
 	ITEM.model = "models/props_c17/tools_wrench01a.mdl";
 	ITEM.weight = 0.2
 	ITEM.description = "A rusty wrench.";

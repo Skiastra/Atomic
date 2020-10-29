@@ -18,7 +18,7 @@ COMMAND.arguments = 1;
 
 -- Called when the command has been run.
 function COMMAND:OnRun(player, arguments)
-	local itemTable = Clockwork.item:Get(arguments[1]);
+	local itemTable = player:FindItemByID(arguments[1]);
 	local entity = player:GetEyeTraceNoCursor().Entity;
 	local healed;
 	
@@ -27,19 +27,17 @@ function COMMAND:OnRun(player, arguments)
 	if (target) then
 		if (entity:GetPos():Distance( player:GetShootPos() ) <= 192) then
 			if (itemTable and arguments[1]) then
-				if (player:HasItem(itemTable.name)) then
-					if (Clockwork.plugin:Call("PlayerHealed", target, player, itemTable)) then
-						target:SetHealth( math.Clamp( target:Health() + Atomic:GetHealAmount(player, itemTable.baseHeal), 0, target:GetMaxHealth() ) );
-						target:EmitSound(itemTable.useSound);
-						
-						player:TakeItem(itemTable, true);
-						
-						Clockwork.kernel:PrintLog(LOGTYPE_URGENT, player:Name().." has healed "..target:Name().." for "..Atomic:GetHealAmount(player, itemTable.baseHeal)..", leaving them at "..target:Health()" health!");
+				if (Clockwork.plugin:Call("PlayerHealed", target, player, itemTable)) then
+					local healAmt = Atomic:GetHealAmount(player, itemTable.baseHeal);
 
-						healed = true;
-					end;
-				else
-					Clockwork.player:Notify(player, "You do not own that item!");
+					target:SetHealth( math.Clamp( target:Health() + healAmt, 0, target:GetMaxHealth() ) );
+					target:EmitSound(itemTable.useSound);
+						
+					player:TakeItem(itemTable, true);
+					
+					Clockwork.kernel:PrintLog(LOGTYPE_URGENT, player:Name().." has healed "..target:Name().." for "..healAmt..", leaving them at "..target:Health().." health!");
+
+					healed = true;
 				end;
 			else
 				Clockwork.player:Notify(player, "That is not a valid item!");
